@@ -3,7 +3,7 @@ Import-Module ActiveDirectory
 Import-Module ThreadJob
 
 # Specify the OUs to search in
-$ous = @("OU=Domain Controllers,DC=contoso,DC=com")
+$ous = @("OU=YourOU1,DC=YourDomain,DC=com", "OU=YourOU2,DC=YourDomain,DC=com")
 
 # Initialize an array for storing computer names
 $computers = @()
@@ -26,11 +26,16 @@ $scriptBlock = {
 
     # Test if we can connect to the computer
     if (Test-Connection -ComputerName $computer -Count 2 -Quiet) {
-        # Get the Defender status
-        $defenderStatus = Invoke-Command -ComputerName $computer -ScriptBlock {
+        # Get the Operating System and Defender status
+        $info = Invoke-Command -ComputerName $computer -ScriptBlock {
             try {
+                $os = Get-WmiObject -Class Win32_OperatingSystem | Select-Object -ExpandProperty Caption
                 $defender = Get-MpComputerStatus
-                return $defender.RealTimeProtectionEnabled.ToString()
+                return @{
+                    OS = $os
+                    RealTimeProtectionEnabled = $defender.RealTimeProtectionEnabled.ToString()
+                    SignatureVersion = $defender.AntispywareSignatureVersion
+                }
             } 
             catch {
                 return $null
@@ -38,7 +43,7 @@ $scriptBlock = {
         } -ErrorAction SilentlyContinue
 
         # Define the status
-        $status = switch ($defenderStatus) {
+        $status = switch ($info.RealTimeProtectionEnabled) {
             "True" { "Enabled" }
             "False" { "Disabled" }
             $null { "Error or No Defender" }
@@ -47,13 +52,17 @@ $scriptBlock = {
         # Add the status to the results
         return New-Object -TypeName PSObject -Property @{
             ComputerName = $computer
+            OS = $info.OS
             Status = $status
+            SignatureVersion = $info.SignatureVersion
         }
     } else {
         # Add an error to the results
         return New-Object -TypeName PSObject -Property @{
             ComputerName = $computer
             Status = "Unreachable"
+            OS = "Unreachable"
+            SignatureVersion = "Unreachable"
         }
     }
 }
