@@ -16,10 +16,6 @@ foreach ($ou in $ous) {
 # Output CSV
 $output = "C:\temp\DefenderStatus.csv"
 
-# Initialize progress bar
-$progressCount = 0
-$progressTotal = $computers.Count
-
 # Create script block for ThreadJob
 $scriptBlock = {
     param ($computer)
@@ -67,16 +63,22 @@ $scriptBlock = {
     }
 }
 
+# Initialize progress bar
+$progressCount = 0
+$progressTotal = $computers.Count
+
+# Initialize results array
+$results = @()
+
 # Launch jobs
 $jobs = $computers | ForEach-Object {
-    Start-ThreadJob -ScriptBlock $scriptBlock -ArgumentList $_
-    # Update progress bar
+    $job = Start-ThreadJob -ScriptBlock $scriptBlock -ArgumentList $_
+    # Wait for each job to complete, then add its result to the results array and update the progress bar
+    $results += Receive-Job -Job $job -Wait
+    Remove-Job -Job $job
     $progressCount++
     Write-Progress -Activity 'Checking Defender status' -Status "$progressCount of $progressTotal computers checked" -PercentComplete (($progressCount / $progressTotal) * 100)
 }
-
-# Gather results
-$results = $jobs | Receive-Job -Wait -AutoRemoveJob
 
 # Export the results to the CSV file
 $results | Export-Csv -Path $output -NoTypeInformation
