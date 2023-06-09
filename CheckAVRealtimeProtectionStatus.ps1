@@ -3,7 +3,7 @@ Import-Module ActiveDirectory
 Import-Module ThreadJob
 
 # Specify the OUs to search in
-$ous = @("OU=Domain Controllers,DC=contoso,DC=com","OU=Servers,DC=contoso,DC=com")
+$ous = @("OU=Domain Controllers,DC=contoso,DC=com")
 
 # Initialize an array for storing computer names
 $computers = @()
@@ -15,6 +15,10 @@ foreach ($ou in $ous) {
 
 # Output CSV
 $output = "C:\temp\DefenderStatus.csv"
+
+# Initialize progress bar
+$progressCount = 0
+$progressTotal = $computers.Count
 
 # Create script block for ThreadJob
 $scriptBlock = {
@@ -55,10 +59,18 @@ $scriptBlock = {
 }
 
 # Launch jobs
-$jobs = $computers | ForEach-Object { Start-ThreadJob -ScriptBlock $scriptBlock -ArgumentList $_ }
+$jobs = $computers | ForEach-Object {
+    Start-ThreadJob -ScriptBlock $scriptBlock -ArgumentList $_
+    # Update progress bar
+    $progressCount++
+    Write-Progress -Activity 'Checking Defender status' -Status "$progressCount of $progressTotal computers checked" -PercentComplete (($progressCount / $progressTotal) * 100)
+}
 
 # Gather results
 $results = $jobs | Receive-Job -Wait -AutoRemoveJob
 
 # Export the results to the CSV file
 $results | Export-Csv -Path $output -NoTypeInformation
+
+# Complete progress bar
+Write-Progress -Activity 'Checking Defender status' -Completed
