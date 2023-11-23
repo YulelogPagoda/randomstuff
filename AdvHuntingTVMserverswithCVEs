@@ -1,0 +1,9 @@
+DeviceTvmSoftwareVulnerabilities
+| join kind=inner (
+    DeviceTvmSoftwareVulnerabilitiesKB
+    | project CveId, PublishedDate, VulnerabilityDescription, CvssScore
+) on CveId
+| summarize Vulnerabilities = make_list(pack("CveId", CveId, "CvssScore", CvssScore, "PublishedDate", PublishedDate, "VulnerabilityDescription", VulnerabilityDescription)) by DeviceName, DeviceId
+| extend Timestamp = now()
+| extend ReportID = strcat(DeviceId, "_", tostring(datetime_diff('second', Timestamp, datetime(1970-01-01))))
+| project DeviceName, Vulnerabilities, Timestamp, ReportID
