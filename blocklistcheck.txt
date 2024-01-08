@@ -3,7 +3,6 @@ let BlockList = (externaldata(ip:string)
 [@"https://rules.emergingthreats.net/blockrules/compromised-ips.txt",
 @"https://raw.githubusercontent.com/stamparm/ipsum/master/levels/5.txt",
 @"https://cinsscore.com/list/ci-badguys.txt",
-@"https://infosec.cert-pa.it/analyze/listip.txt",
 @"https://feodotracker.abuse.ch/downloads/ipblocklist_recommended.txt"
 ]
 with(format="csv")
