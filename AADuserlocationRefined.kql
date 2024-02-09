@@ -1,0 +1,13 @@
+SigninLogs
+| where not(ipv4_is_match("192.168.1.1/19", IPAddress))
+| where ResultType == 0
+//| where UserPrincipalName == "user@contoso.com"
+| where TimeGenerated >= ago(30d)
+| extend  locationString= strcat(tostring(LocationDetails["countryOrRegion"]), "/", tostring(LocationDetails["state"]), "/", tostring(LocationDetails["city"]), ";")
+| project TimeGenerated, AppDisplayName , UserPrincipalName, locationString, ResultType, IPAddress
+//| summarize count() by locationString , IPAddress, bin(TimeGenerated,1d)
+//| summarize dcount(locationString) by UserPrincipalName , bin(TimeGenerated,1d)
+| make-series dLocationCount = dcount(locationString) on TimeGenerated in range(startofday(ago(30d)),now(), 1d)
+by UserPrincipalName, AppDisplayName
+| extend (RSquare,Slope,Variance,RVariance,Interception,LineFit)=series_fit_line(dLocationCount)
+| where Slope >0.03
