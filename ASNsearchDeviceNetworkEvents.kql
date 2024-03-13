@@ -1,0 +1,9 @@
+//Query to See Device Network Events from a certain Autonomous System boundary
+let nets = (externaldata(Subnet:string)
+// Set the AS number between / and "
+    [@"http://asn.blawk.net/8075"]
+    with(format="raw"));
+let SubnetString = toscalar(nets | project Subnet);
+let SubnetArray = split(SubnetString, "\n");
+DeviceNetworkEvents
+| where ipv4_is_in_any_range(RemoteIP, SubnetArray)
